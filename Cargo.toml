@@ -1,0 +1,50 @@
+cargo-features = ["resolver"]
+
+[workspace]
+members = ["macros"]
+
+[package]
+name = "drone-riscv"
+version = "0.13.0"
+authors = ["Valentine Valyaeff <valentine.valyaeff@gmail.com>"]
+edition = "2018"
+resolver = "2"
+repository = "https://github.com/drone-os/drone-riscv"
+homepage = "https://www.drone-os.com/"
+documentation = "https://api.drone-os.com/drone-riscv/0.13/drone_riscv/"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+keywords = [
+    "risc-v",
+    "rtos",
+    "bare-metal",
+    "firmware",
+]
+categories = [
+    "embedded",
+    "asynchronous",
+    "concurrency",
+    "no-std",
+    "hardware-support",
+]
+description = """
+RISC-V platform crate for Drone, an Embedded Operating System.
+"""
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[features]
+default = []
+std = ["drone-core/std", "futures/std"]
+
+[dependencies.drone-riscv-macros]
+version = "=0.13.0"
+path = "macros"
+
+[dependencies.drone-core]
+version = "0.13.0"
+path = "../drone-core"
+
+[dependencies]
+futures = { version = "0.3.0", default-features = false }
