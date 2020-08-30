@@ -31,7 +31,8 @@
 //! ```
 
 #![feature(prelude_import)]
-#![warn(missing_docs)]
+#![feature(unsafe_block_in_unsafe_fn)]
+#![warn(missing_docs, unsafe_op_in_unsafe_fn)]
 #![warn(clippy::pedantic)]
 #![cfg_attr(not(feature = "std"), no_std)]
 

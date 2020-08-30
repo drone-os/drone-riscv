@@ -37,6 +37,9 @@ maintenance = { status = "actively-developed" }
 [features]
 default = []
 std = ["drone-core/std", "futures/std"]
+m-extension = []
+a-extension = []
+c-extension = []
 
 [dependencies.drone-riscv-macros]
 version = "=0.13.0"
