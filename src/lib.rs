@@ -30,13 +30,32 @@
 //! std = ["drone-riscv/std"]
 //! ```
 
+#![feature(llvm_asm)]
 #![feature(prelude_import)]
 #![feature(unsafe_block_in_unsafe_fn)]
 #![warn(missing_docs, unsafe_op_in_unsafe_fn)]
 #![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
+
+pub mod map;
+pub mod processor;
+pub mod reg;
+pub mod thr;
+
+mod drone_core_macro_reexport {
+    pub use drone_core::reg;
+}
+
+pub use drone_core_macro_reexport::*;
+
+/// Defines threads.
+///
+/// See [the module level documentation](thr) for details.
+#[doc(inline)]
+pub use drone_riscv_macros::thr;
 
 #[prelude_import]
 #[allow(unused_imports)]
