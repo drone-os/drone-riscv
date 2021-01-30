@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "std", allow(unreachable_code, unused_mut))]
 
 use crate::thr::{trap_handler, ThrTokens};
-use drone_core::{thr::Thread, token::Token};
+use drone_core::token::Token;
 
 /// Threads initialization token.
 ///
@@ -12,9 +12,6 @@ pub unsafe trait ThrsInitToken: Token {
     /// The set of thread tokens.
     type ThrTokens: ThrTokens;
 
-    /// The thread type.
-    type Thread: Thread;
-
     /// Exception handler.
     const EXCEPTION_HANDLER: Option<unsafe extern "C" fn()>;
 
@@ -23,6 +20,9 @@ pub unsafe trait ThrsInitToken: Token {
 
     /// External interrupt handlers.
     const EXTERNAL_INTERRUPT_HANDLERS: &'static [Option<unsafe extern "C" fn()>];
+
+    /// Sowtware interrupt handlers.
+    const SOFTWARE_INTERRUPT_HANDLERS: &'static [unsafe extern "C" fn()];
 }
 
 /// Initializes the thread system and returns a set of thread tokens.
