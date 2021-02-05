@@ -207,20 +207,18 @@ impl Parse for Threads {
                 let ident = input2.parse()?;
                 if exception {
                     return Err(input2.error("multiple `exception` threads"));
-                } else {
-                    threads.push(Thread::Exception(ThreadSpec { attrs, vis, kind, ident }));
-                    exception = true;
                 }
+                threads.push(Thread::Exception(ThreadSpec { attrs, vis, kind, ident }));
+                exception = true;
             } else if ident == "timer" {
                 let vis = input2.parse()?;
                 let kind = input2.parse()?;
                 let ident = input2.parse()?;
                 if timer {
                     return Err(input2.error("multiple `timer` threads"));
-                } else {
-                    threads.push(Thread::Timer(ThreadSpec { attrs, vis, kind, ident }));
-                    timer = true;
                 }
+                threads.push(Thread::Timer(ThreadSpec { attrs, vis, kind, ident }));
+                timer = true;
             } else {
                 return Err(input2.error(format!("Unexpected ident `{}`", ident)));
             }

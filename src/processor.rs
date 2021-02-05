@@ -1,6 +1,6 @@
 //! Common utility functions for working with RISC-V processors.
 
-#![cfg_attr(feature = "std", allow(unreachable_code, unused_mut))]
+#![cfg_attr(feature = "std", allow(unreachable_code))]
 
 /// Waits for interrupt.
 ///
@@ -10,21 +10,26 @@
 pub fn wait_for_int() {
     #[cfg(feature = "std")]
     return unimplemented!();
-    unsafe { llvm_asm!("wfi" :::: "volatile") };
+    #[cfg(not(feature = "std"))]
+    unsafe {
+        asm!("wfi", options(nomem, nostack, preserves_flags));
+    }
 }
 
 /// Read MCAUSE CSR (Control and Status Register).
 #[inline]
 #[must_use]
 pub fn csr_read_mcause() -> usize {
-    let mcause;
+    #[cfg(feature = "std")]
+    return unimplemented!();
+    #[cfg(not(feature = "std"))]
     unsafe {
-        llvm_asm!("
-            csrr $0, mcause
-        "   : "=r"(mcause)
-            :
-            :
-            : "volatile");
+        let mcause;
+        asm!(
+            "csrr {0}, mcause",
+            out(reg) mcause,
+            options(nomem, nostack, preserves_flags),
+        );
+        mcause
     }
-    mcause
 }

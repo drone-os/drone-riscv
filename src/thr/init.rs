@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "std", allow(unreachable_code, unused_mut))]
+#![cfg_attr(feature = "std", allow(unreachable_code, unused_imports))]
 
 use crate::thr::{trap_handler, ThrTokens};
 use drone_core::token::Token;
@@ -29,14 +29,16 @@ pub unsafe trait ThrsInitToken: Token {
 #[allow(clippy::needless_pass_by_value)]
 #[inline]
 pub fn init<T: ThrsInitToken>(_token: T) -> T::ThrTokens {
-    let mtvec = trap_handler::<T> as usize;
+    #[cfg(feature = "std")]
+    return unimplemented!();
+    #[cfg(not(feature = "std"))]
     unsafe {
-        llvm_asm!("
-            csrw mtvec, $0
-        "   :
-            : "r"(mtvec)
-            :
-            : "volatile");
+        let mtvec = trap_handler::<T> as usize;
+        asm!(
+            "csrw mtvec, {0}",
+            in(reg) mtvec,
+            options(nomem, nostack, preserves_flags),
+        );
         T::ThrTokens::take()
     }
 }

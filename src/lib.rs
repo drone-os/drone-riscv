@@ -12,7 +12,7 @@
 //! # Documentation
 //!
 //! - [Drone Book](https://book.drone-os.com/)
-//! - [API documentation](https://api.drone-os.com/drone-riscv/0.13/)
+//! - [API documentation](https://api.drone-os.com/drone-riscv/0.14/)
 //!
 //! # Usage
 //!
@@ -20,7 +20,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! drone-riscv = { version = "0.13.0", features = [...] }
+//! drone-riscv = { version = "0.14.0", features = [...] }
 //! ```
 //!
 //! Add or extend `std` feature as follows:
@@ -30,7 +30,7 @@
 //! std = ["drone-riscv/std"]
 //! ```
 
-#![feature(llvm_asm)]
+#![feature(asm)]
 #![feature(prelude_import)]
 #![feature(unsafe_block_in_unsafe_fn)]
 #![warn(missing_docs, unsafe_op_in_unsafe_fn)]

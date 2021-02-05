@@ -1,14 +1,13 @@
-riscv_core := 'bumblebee'
-export DRONE_RUSTFLAGS := '--cfg riscv_core="' + riscv_core + '"'
-target := 'riscv32imac-unknown-none-elf'
 features := ''
+target := `drone print target 2>/dev/null || echo ""`
 
 # Install dependencies
 deps:
-	rustup target add {{target}}
+	type cargo-readme >/dev/null || cargo +stable install cargo-readme
+	type drone >/dev/null || cargo install drone
+	rustup target add $(drone print target)
 	rustup component add clippy
 	rustup component add rustfmt
-	type cargo-readme >/dev/null || cargo +stable install cargo-readme
 
 # Reformat the source code
 fmt:
@@ -16,22 +15,26 @@ fmt:
 
 # Check the source code for mistakes
 lint:
-	cargo clippy --package drone-riscv-macros
-	drone env {{target}} -- cargo clippy --features "{{features}}" --package drone-riscv
+	cargo clippy --package drone-riscv-macros \
+		--target=$(rustc --version --verbose | sed -n '/host/{s/.*: //;p}')
+	cargo clippy --package drone-riscv --features "{{features}}"
 
 # Build the documentation
 doc:
-	cargo doc --package drone-riscv-macros
-	drone env {{target}} -- cargo doc --features "{{features}}" --package drone-riscv
+	cargo doc --package drone-riscv-macros \
+		--target=$(rustc --version --verbose | sed -n '/host/{s/.*: //;p}')
+	cargo doc --package drone-riscv --features "{{features}}"
 
 # Open the documentation in a browser
 doc-open: doc
-	drone env {{target}} -- cargo doc --features "{{features}}" --package drone-riscv --open
+	cargo doc --package drone-riscv --features "{{features}}" --open
 
 # Run the tests
 test:
-	cargo test --package drone-riscv-macros
-	drone env -- cargo test --features "{{features}} std" --package drone-riscv
+	cargo test --package drone-riscv-macros \
+		--target=$(rustc --version --verbose | sed -n '/host/{s/.*: //;p}')
+	cargo test --package drone-riscv --features "{{features}} std" \
+		--target=$(rustc --version --verbose | sed -n '/host/{s/.*: //;p}')
 
 # Update README.md
 readme:
@@ -52,9 +55,10 @@ version-bump version drone-core-version:
 
 # Publish to crates.io
 publish:
-	cd macros && cargo publish
+	cd macros && cargo publish \
+		--target=$(rustc --version --verbose | sed -n '/host/{s/.*: //;p}')
 	sleep 30
-	drone env {{target}} -- cargo publish --features "{{features}}"
+	cargo publish --features "{{features}}"
 
 # Publish the docs to api.drone-os.com
 publish-doc: doc

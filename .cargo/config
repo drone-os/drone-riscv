@@ -1,0 +1,10 @@
+[build]
+target = 'riscv32imac-unknown-none-elf'
+rustflags = [
+    '--cfg', 'riscv_core="bumblebee"',
+]
+
+[target.riscv32imac-unknown-none-elf]
+rustflags = [
+    '--cfg', 'riscv_core="bumblebee"',
+]

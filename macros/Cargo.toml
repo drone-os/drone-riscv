@@ -1,14 +1,12 @@
-cargo-features = ["resolver"]
-
 [package]
 name = "drone-riscv-macros"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Valentine Valyaeff <valentine.valyaeff@gmail.com>"]
 edition = "2018"
 resolver = "2"
 repository = "https://github.com/drone-os/drone-riscv"
 homepage = "https://www.drone-os.com/"
-documentation = "https://api.drone-os.com/drone-riscv/0.13/drone_riscv_macros/"
+documentation = "https://api.drone-os.com/drone-riscv/0.14/drone_riscv_macros/"
 license = "MIT OR Apache-2.0"
 description = """
 Procedural macros for drone-riscv.
@@ -18,7 +16,7 @@ Procedural macros for drone-riscv.
 proc-macro = true
 
 [dependencies.drone-macros-core]
-version = "0.13.0"
+version = "0.14.0"
 path = "../../drone-core/macros-core"
 
 [dependencies]
