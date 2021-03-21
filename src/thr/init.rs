@@ -1,28 +1,29 @@
 #![cfg_attr(feature = "std", allow(unreachable_code, unused_imports))]
 
-use crate::thr::{trap_handler, ThrTokens};
+use crate::thr::{trap_handler, SoftThread};
 use drone_core::token::Token;
 
 /// Threads initialization token.
 ///
 /// # Safety
 ///
-/// Must be defined only once for a particular set of threads.
+/// * Must be defined only once for a particular set of threads.
+/// * `ThrTokens` type must contain only thread tokens.
 pub unsafe trait ThrsInitToken: Token {
+    /// The thread type.
+    type Thread: SoftThread;
+
     /// The set of thread tokens.
-    type ThrTokens: ThrTokens;
+    type ThrTokens: Token;
 
     /// Exception handler.
-    const EXCEPTION_HANDLER: Option<unsafe extern "C" fn()>;
+    const EXCEPTION_HANDLER: u16;
 
     /// Timer interrupt handler.
-    const TIMER_INTERRUPT_HANDLER: Option<unsafe extern "C" fn()>;
+    const TIMER_HANDLER: u16;
 
     /// External interrupt handlers.
-    const EXTERNAL_INTERRUPT_HANDLERS: &'static [Option<unsafe extern "C" fn()>];
-
-    /// Sowtware interrupt handlers.
-    const SOFTWARE_INTERRUPT_HANDLERS: &'static [unsafe extern "C" fn()];
+    const EXTERNAL_HANDLERS: &'static [u16];
 }
 
 /// Initializes the thread system and returns a set of thread tokens.

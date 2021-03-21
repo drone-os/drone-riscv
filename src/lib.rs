@@ -51,12 +51,6 @@ mod drone_core_macro_reexport {
 
 pub use drone_core_macro_reexport::*;
 
-/// Defines threads.
-///
-/// See [the module level documentation](thr) for details.
-#[doc(inline)]
-pub use drone_riscv_macros::thr;
-
 #[prelude_import]
 #[allow(unused_imports)]
 use drone_core::prelude::*;

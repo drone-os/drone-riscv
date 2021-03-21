@@ -8,11 +8,11 @@
 
 extern crate proc_macro;
 
-mod thr;
+mod thr_clint;
 
 use proc_macro::TokenStream;
 
 #[proc_macro]
-pub fn thr(input: TokenStream) -> TokenStream {
-    thr::proc_macro(input)
+pub fn thr_clint(input: TokenStream) -> TokenStream {
+    thr_clint::proc_macro(input)
 }
