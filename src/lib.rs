@@ -31,8 +31,9 @@
 //! ```
 
 #![feature(asm)]
+#![feature(naked_functions)]
+#![feature(never_type)]
 #![feature(prelude_import)]
-#![feature(unsafe_block_in_unsafe_fn)]
 #![warn(missing_docs, unsafe_op_in_unsafe_fn)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
@@ -44,6 +45,8 @@ pub mod map;
 pub mod processor;
 pub mod reg;
 pub mod thr;
+
+mod rt;
 
 mod drone_core_macro_reexport {
     pub use drone_core::reg;

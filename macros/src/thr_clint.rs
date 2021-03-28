@@ -1,6 +1,7 @@
+use inflector::Inflector;
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{
     braced,
     parse::{Parse, ParseStream, Result},
@@ -292,8 +293,11 @@ fn def_thr_pool(thr: &Thr, local: &Local, index: &Index, threads: &[Thread]) -> 
     let Local { attrs: local_attrs, vis: local_vis, ident: local_ident, tokens: local_tokens } =
         local;
     let Index { attrs: index_attrs, vis: index_vis, ident: index_ident } = index;
+    let plic_num = format_ident!("{}_plic_num", thr_ident.to_string().to_snake_case());
+    let resume = format_ident!("{}_resume", thr_ident.to_string().to_snake_case());
     let mut threads_tokens = Vec::new();
-    for thread in threads {
+    let mut plic_num_tokens = Vec::new();
+    for (idx, thread) in threads.iter().enumerate() {
         match thread {
             Thread::Exception(spec)
             | Thread::Timer(spec)
@@ -303,16 +307,27 @@ fn def_thr_pool(thr: &Thr, local: &Local, index: &Index, threads: &[Thread]) -> 
                 threads_tokens.push(quote! {
                     #(#attrs)* #vis #ident
                 });
+                if let Thread::External(num, _) = thread {
+                    let idx = LitInt::new(&format!("{}_u16", idx), Span::call_site());
+                    plic_num_tokens.push(quote! {
+                        #idx => ::core::num::NonZeroU32::new(#num)
+                    });
+                }
             }
         }
     }
     quote! {
         ::drone_core::thr::soft! {
             #(#thr_attrs)*
-            thread => #thr_vis #thr_ident { #thr_tokens };
+            thread => #thr_vis #thr_ident {
+                plic_num: ::core::option::Option<::core::num::NonZeroU32> = #plic_num(index);
+                #thr_tokens
+            };
 
             #(#local_attrs)*
-            local => #local_vis #local_ident { #local_tokens };
+            local => #local_vis #local_ident {
+                #local_tokens
+            };
 
             #(#index_attrs)*
             index => #index_vis #index_ident;
@@ -320,6 +335,27 @@ fn def_thr_pool(thr: &Thr, local: &Local, index: &Index, threads: &[Thread]) -> 
             threads => {
                 #(#threads_tokens;)*
             };
+
+            resume => #resume;
+        }
+
+        const fn #plic_num(index: u16) -> ::core::option::Option<::core::num::NonZeroU32> {
+            match index {
+                #(#plic_num_tokens,)*
+                _ => None,
+            }
+        }
+
+        #[inline]
+        unsafe fn #resume(thr: &#thr_ident) {
+            ::core::mem::drop(::drone_core::thr::Thread::fib_chain(thr).drain());
+            if let Some(num) = thr.plic_num {
+                use ::drone_core::reg::prelude::*;
+                use ::drone_core::token::Token;
+                use ::drone_riscv::map::reg::plic;
+                let plic_claim_complete = plic::Hart0MClaimComplete::<Srt>::take();
+                plic_claim_complete.store(|r| r.write_claim_complete(num.get()));
+            }
         }
     }
 }

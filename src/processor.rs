@@ -15,21 +15,3 @@ pub fn wait_for_int() {
         asm!("wfi", options(nomem, nostack, preserves_flags));
     }
 }
-
-/// Read MCAUSE CSR (Control and Status Register).
-#[inline]
-#[must_use]
-pub fn csr_read_mcause() -> usize {
-    #[cfg(feature = "std")]
-    return unimplemented!();
-    #[cfg(not(feature = "std"))]
-    unsafe {
-        let mcause;
-        asm!(
-            "csrr {0}, mcause",
-            out(reg) mcause,
-            options(nomem, nostack, preserves_flags),
-        );
-        mcause
-    }
-}

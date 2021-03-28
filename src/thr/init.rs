@@ -1,6 +1,6 @@
 #![cfg_attr(feature = "std", allow(unreachable_code, unused_imports))]
 
-use crate::thr::{trap_handler, SoftThread};
+use crate::{map::reg::plic, reg::prelude::*, thr::SoftThread};
 use drone_core::token::Token;
 
 /// Threads initialization token.
@@ -42,4 +42,112 @@ pub fn init<T: ThrsInitToken>(_token: T) -> T::ThrTokens {
         );
         T::ThrTokens::take()
     }
+}
+
+/// Machine trap handler function.
+///
+/// # Safety
+///
+/// The function is not reentrant.
+#[naked]
+pub unsafe extern "C" fn trap_handler<T: ThrsInitToken>() {
+    unsafe {
+        asm!(
+            "    addi sp, sp, -80",
+            "    sw a0, 76(sp)",
+            "    sw a1, 72(sp)",
+            "    csrr a0, mcause",
+            "    li a1, 11",
+            "    bne a0, a1, 0f",
+            "    addi sp, sp, 80",
+            "    lw a0, 12(sp)",
+            "    csrw mepc, a0",
+            "    j 1f",
+            "0:  sw a2, 68(sp)",
+            "    sw a3, 64(sp)",
+            "    sw a4, 60(sp)",
+            "    sw a5, 56(sp)",
+            "    sw a6, 52(sp)",
+            "    sw a7, 48(sp)",
+            "    sw t0, 44(sp)",
+            "    sw t1, 40(sp)",
+            "    sw t2, 36(sp)",
+            "    sw t3, 32(sp)",
+            "    sw t4, 28(sp)",
+            "    sw t5, 24(sp)",
+            "    sw t6, 20(sp)",
+            "    sw ra, 16(sp)",
+            "    jal {pending_idx}",
+            "    beqz a0, 1f",
+            "    addi a0, a0, -1",
+            "    jal {will_preempt}",
+            "    beqz a0, 1f",
+            "    csrr a0, mepc",
+            "    sw a0, 12(sp)",
+            "    la a0, {preempt}",
+            "    csrw mepc, a0",
+            "    mret",
+            "1:  lw ra, 16(sp)",
+            "    lw t6, 20(sp)",
+            "    lw t5, 24(sp)",
+            "    lw t4, 28(sp)",
+            "    lw t3, 32(sp)",
+            "    lw t2, 36(sp)",
+            "    lw t1, 40(sp)",
+            "    lw t0, 44(sp)",
+            "    lw a7, 48(sp)",
+            "    lw a6, 52(sp)",
+            "    lw a5, 56(sp)",
+            "    lw a4, 60(sp)",
+            "    lw a3, 64(sp)",
+            "    lw a2, 68(sp)",
+            "    lw a1, 72(sp)",
+            "    lw a0, 76(sp)",
+            "    addi sp, sp, 80",
+            "    mret",
+            pending_idx = sym pending_idx::<T>,
+            will_preempt = sym will_preempt::<T::Thread>,
+            preempt = sym preempt::<T>,
+            options(noreturn),
+        );
+    }
+}
+
+#[naked]
+unsafe extern "C" fn preempt<T: ThrsInitToken>() {
+    unsafe {
+        asm!(
+            "jal {soft_preempt}",
+            "ecall",
+            soft_preempt = sym soft_preempt::<T::Thread>,
+            options(noreturn),
+        );
+    }
+}
+
+unsafe extern "C" fn pending_idx<T: ThrsInitToken>(mcause: usize) -> u16 {
+    if mcause & 1 << 31 == 0 {
+        return T::EXCEPTION_HANDLER;
+    } else if mcause == 1 << 31 | 7 {
+        return T::TIMER_HANDLER;
+    } else if mcause == 1 << 31 | 3 {
+        // Software Interrupt. Unimplemented.
+    } else if mcause == 1 << 31 | 11 {
+        let plic_claim_complete = unsafe { plic::Hart0MClaimComplete::<Srt>::take() };
+        let num = plic_claim_complete.load().claim_complete();
+        if num > 0 {
+            if let Some(&idx) = T::EXTERNAL_HANDLERS.get(num as usize - 1) {
+                return idx;
+            }
+        }
+    }
+    0
+}
+
+unsafe extern "C" fn will_preempt<T: SoftThread>(thr_idx: u16) -> bool {
+    unsafe { T::will_preempt(thr_idx) }
+}
+
+extern "C" fn soft_preempt<T: SoftThread>() {
+    T::preempt();
 }

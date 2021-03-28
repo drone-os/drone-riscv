@@ -2,9 +2,10 @@
 
 #[path = "."]
 mod inner {
+    mod clint;
     mod plic;
 
-    pub use self::plic::*;
+    pub use self::{clint::*, plic::*};
 }
 
 use drone_core::reg;
@@ -18,6 +19,15 @@ reg::tokens! {
     /// Platform-Level Interrupt Controller.
     pub mod PLIC {
         HART0_M_CLAIM_COMPLETE;
+    }
+
+    /// Core-Local Interruptor.
+    pub mod CLINT {
+        HART0_MSIP;
+        HART0_MTIMECMP_LOW;
+        HART0_MTIMECMP_HIGH;
+        HART0_MTIME_LOW;
+        HART0_MTIME_HIGH;
     }
 }
 
