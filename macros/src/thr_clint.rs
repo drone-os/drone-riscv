@@ -14,6 +14,8 @@ struct Input {
     index: Index,
     init: Init,
     threads: Threads,
+    timer_base: usize,
+    plic_base: usize,
 }
 
 struct Thr {
@@ -66,6 +68,8 @@ impl Parse for Input {
         let mut index = None;
         let mut init = None;
         let mut threads = None;
+        let mut timer_base = None;
+        let mut plic_base = None;
         while !input.is_empty() {
             let attrs = input.call(Attribute::parse_outer)?;
             let ident = input.parse::<Ident>()?;
@@ -100,6 +104,18 @@ impl Parse for Input {
                 } else {
                     return Err(input.error("multiple `threads` specifications"));
                 }
+            } else if attrs.is_empty() && ident == "timer_base" {
+                if timer_base.is_none() {
+                    timer_base = Some(input.parse::<LitInt>()?.base10_parse()?);
+                } else {
+                    return Err(input.error("multiple `timer_base` specifications"));
+                }
+            } else if attrs.is_empty() && ident == "plic_base" {
+                if plic_base.is_none() {
+                    plic_base = Some(input.parse::<LitInt>()?.base10_parse()?);
+                } else {
+                    return Err(input.error("multiple `plic_base` specifications"));
+                }
             }
             if !input.is_empty() {
                 input.parse::<Token![;]>()?;
@@ -111,6 +127,9 @@ impl Parse for Input {
             index: index.ok_or_else(|| input.error("missing `index` specification"))?,
             init: init.ok_or_else(|| input.error("missing `init` specification"))?,
             threads: threads.ok_or_else(|| input.error("missing `threads` specification"))?,
+            timer_base: timer_base
+                .ok_or_else(|| input.error("missing `timer_base` specification"))?,
+            plic_base: plic_base.ok_or_else(|| input.error("missing `plic_base` specification"))?,
         })
     }
 }
@@ -218,20 +237,27 @@ impl Parse for Threads {
 }
 
 pub fn proc_macro(input: TokenStream) -> TokenStream {
-    let Input { thr, local, index, init, threads } = parse_macro_input!(input as Input);
+    let Input { thr, local, index, init, threads, timer_base, plic_base } =
+        parse_macro_input!(input as Input);
     let Threads { threads } = threads;
-    let def_thr_pool = def_thr_pool(&thr, &local, &index, &threads);
-    let def_init = def_init(&thr, &index, &init, &threads);
+    let def_thr_pool = def_thr_pool(&thr, &local, &index, &threads, plic_base);
+    let def_init = def_init(&thr, &index, &init, &threads, timer_base, plic_base);
     let expanded = quote! {
         #def_thr_pool
         #def_init
-        ::drone_riscv::reg::assert_taken!("plic_hart0_m_claim_complete");
     };
     expanded.into()
 }
 
 #[allow(clippy::cast_possible_truncation)]
-fn def_init(thr: &Thr, index: &Index, init: &Init, threads: &[Thread]) -> TokenStream2 {
+fn def_init(
+    thr: &Thr,
+    index: &Index,
+    init: &Init,
+    threads: &[Thread],
+    timer_base: usize,
+    plic_base: usize,
+) -> TokenStream2 {
     let Thr { ident: thr_ident, .. } = thr;
     let Init { attrs: init_attrs, vis: init_vis, ident: init_ident } = init;
     let Index { ident: index_ident, .. } = index;
@@ -284,11 +310,21 @@ fn def_init(thr: &Thr, index: &Index, init: &Init, threads: &[Thread]) -> TokenS
             const EXTERNAL_HANDLERS: &'static [u16] = &[
                 #(#external),*
             ];
+
+            const TIMER_BASE: usize = #timer_base;
+
+            const PLIC_BASE: usize = #plic_base;
         }
     }
 }
 
-fn def_thr_pool(thr: &Thr, local: &Local, index: &Index, threads: &[Thread]) -> TokenStream2 {
+fn def_thr_pool(
+    thr: &Thr,
+    local: &Local,
+    index: &Index,
+    threads: &[Thread],
+    plic_base: usize,
+) -> TokenStream2 {
     let Thr { attrs: thr_attrs, vis: thr_vis, ident: thr_ident, tokens: thr_tokens } = thr;
     let Local { attrs: local_attrs, vis: local_vis, ident: local_ident, tokens: local_tokens } =
         local;
@@ -350,11 +386,7 @@ fn def_thr_pool(thr: &Thr, local: &Local, index: &Index, threads: &[Thread]) -> 
         unsafe fn #resume(thr: &#thr_ident) {
             ::core::mem::drop(::drone_core::thr::Thread::fib_chain(thr).drain());
             if let Some(num) = thr.plic_num {
-                use ::drone_core::reg::prelude::*;
-                use ::drone_core::token::Token;
-                use ::drone_riscv::map::reg::plic;
-                let plic_claim_complete = plic::Hart0MClaimComplete::<Srt>::take();
-                plic_claim_complete.store(|r| r.write_claim_complete(num.get()));
+                ::core::ptr::write_volatile((#plic_base + 0x0020_0004) as *mut u32, num.get());
             }
         }
     }

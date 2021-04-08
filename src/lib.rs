@@ -41,7 +41,6 @@
 
 extern crate alloc;
 
-pub mod map;
 pub mod processor;
 pub mod reg;
 pub mod thr;

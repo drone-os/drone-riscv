@@ -1,6 +1,7 @@
 #![cfg_attr(feature = "std", allow(unreachable_code, unused_imports))]
 
-use crate::{map::reg::plic, reg::prelude::*, thr::SoftThread};
+use crate::thr::SoftThread;
+use core::ptr::{read_volatile, write_volatile};
 use drone_core::token::Token;
 
 /// Threads initialization token.
@@ -24,6 +25,12 @@ pub unsafe trait ThrsInitToken: Token {
 
     /// External interrupt handlers.
     const EXTERNAL_HANDLERS: &'static [u16];
+
+    /// Base address of TIMER Memory Map.
+    const TIMER_BASE: usize;
+
+    /// Base address of PLIC Memory Map.
+    const PLIC_BASE: usize;
 }
 
 /// Initializes the thread system and returns a set of thread tokens.
@@ -53,6 +60,7 @@ pub fn init<T: ThrsInitToken>(_token: T) -> T::ThrTokens {
 pub unsafe extern "C" fn trap_handler<T: ThrsInitToken>() {
     unsafe {
         asm!(
+            ".align 4", // TODO https://github.com/rust-lang/rust/issues/82232
             "    addi sp, sp, -80",
             "    sw a0, 76(sp)",
             "    sw a1, 72(sp)",
@@ -129,12 +137,15 @@ unsafe extern "C" fn pending_idx<T: ThrsInitToken>(mcause: usize) -> u16 {
     if mcause & 1 << 31 == 0 {
         return T::EXCEPTION_HANDLER;
     } else if mcause == 1 << 31 | 7 {
+        unsafe {
+            write_volatile((T::TIMER_BASE + 0x8) as *mut u32, 0xFFFF_FFFF);
+            write_volatile((T::TIMER_BASE + 0xC) as *mut u32, 0xFFFF_FFFF);
+        }
         return T::TIMER_HANDLER;
     } else if mcause == 1 << 31 | 3 {
         // Software Interrupt. Unimplemented.
     } else if mcause == 1 << 31 | 11 {
-        let plic_claim_complete = unsafe { plic::Hart0MClaimComplete::<Srt>::take() };
-        let num = plic_claim_complete.load().claim_complete();
+        let num = unsafe { read_volatile((T::PLIC_BASE + 0x0020_0004) as *const u32) };
         if num > 0 {
             if let Some(&idx) = T::EXTERNAL_HANDLERS.get(num as usize - 1) {
                 return idx;
