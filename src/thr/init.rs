@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "std", allow(unreachable_code, unused_imports))]
+#![cfg_attr(feature = "std", allow(dead_code, unreachable_code, unused_imports))]
 
 use crate::thr::SoftThread;
 use core::ptr::{read_volatile, write_volatile};

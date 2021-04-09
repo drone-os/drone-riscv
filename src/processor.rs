@@ -1,6 +1,6 @@
 //! Common utility functions for working with RISC-V processors.
 
-#![cfg_attr(feature = "std", allow(unreachable_code))]
+#![cfg_attr(feature = "std", allow(dead_code, unreachable_code))]
 
 use core::cell::UnsafeCell;
 
@@ -14,6 +14,9 @@ extern "C" {
 ///
 /// This function reverts the state of the Stack Pointer.
 pub unsafe fn stack_pointer_init() {
+    #[cfg(feature = "std")]
+    return unimplemented!();
+    #[cfg(not(feature = "std"))]
     unsafe {
         asm!("mv sp, {}", in(reg) STACK_POINTER.get() as usize);
     }

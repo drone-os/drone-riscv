@@ -17,7 +17,7 @@ application level according to this table.
 ## Documentation
 
 - [Drone Book](https://book.drone-os.com/)
-- [API documentation](https://api.drone-os.com/drone-riscv/0.13/)
+- [API documentation](https://api.drone-os.com/drone-riscv/0.14/)
 
 ## Usage
 
@@ -25,7 +25,7 @@ Add the crate to your `Cargo.toml` dependencies:
 
 ```toml
 [dependencies]
-drone-riscv = { version = "0.13.0", features = [...] }
+drone-riscv = { version = "0.14.0", features = [...] }
 ```
 
 Add or extend `std` feature as follows:
